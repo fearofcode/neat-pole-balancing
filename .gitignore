@@ -4,3 +4,5 @@
 neat-checkpoint-*
 *.mp4
 winner-feedforward
+*.gv
+*.svg

@@ -27,10 +27,9 @@ def eval_genome(genome, config):
     for runs in range(runs_per_net):
         sim = cart_pole.CartPole()
 
-        # Run the given simulation for up to num_steps time steps.
-        f2_fitnesses = []
-
         steps = 0
+        fitness = 0.0
+
         while steps < simulation_steps:
             inputs = sim.get_scaled_state()
             action = net.activate(inputs)
@@ -45,19 +44,10 @@ def eval_genome(genome, config):
             if abs(sim.x) >= sim.position_limit or abs(sim.theta) >= sim.angle_limit_radians:
                 break
 
-            f2_fitnesses.append(0.75/(abs(sim.x) + abs(sim.theta) + eps))
+            # why add the 1? it's so that solutions that manage to keep the pole stable get non-trivial credit
+            # otherwise the credit based on their state could be too small to let them survive
+            fitness += 1.0 + 1.0/(abs(sim.x) + abs(sim.dx) + abs(sim.theta) + abs(sim.dtheta) + eps)
             steps += 1
-
-        # modified gruau fitness: don't add f2 fitnesses unless stable for the entire time
-
-        f1 = float(steps) / simulation_steps
-        f2 = 0.0
-
-        if steps == simulation_steps:
-            final_fitnesses = f2_fitnesses[-100:]
-            f2 = sum(final_fitnesses)
-
-        fitness = 0.1*f1 + 0.9*f2
 
         fitnesses.append(fitness)
 
@@ -96,17 +86,13 @@ def run():
     print(winner)
 
     visualize.plot_stats(stats, ylog=True, view=True, filename="feedforward-fitness.svg")
-    visualize.plot_species(stats, view=True, filename="feedforward-speciation.svg")
+    """visualize.plot_species(stats, view=True, filename="feedforward-speciation.svg")
 
     node_names = {-1: 'x', -2: 'dx', -3: 'theta', -4: 'dtheta', 0: 'control'}
     visualize.draw_net(config, winner, True, node_names=node_names)
 
     visualize.draw_net(config, winner, view=True, node_names=node_names,
-                       filename="winner-feedforward.gv")
-    visualize.draw_net(config, winner, view=True, node_names=node_names,
-                       filename="winner-feedforward-enabled.gv", show_disabled=False)
-    visualize.draw_net(config, winner, view=True, node_names=node_names,
                        filename="winner-feedforward-enabled-pruned.gv", show_disabled=False, prune_unused=True)
-
+    """
 if __name__ == '__main__':
     run()
