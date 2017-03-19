@@ -19,15 +19,18 @@
 # 3. This notice may not be removed or altered from any source distribution.
 
 from math import pi
+import logging
 
 from Box2D import (b2EdgeShape, b2FixtureDef, b2PolygonShape)
-
 from framework import (Framework, Keys, main)
 import settings
 
 
 def to_radians(degrees):
     return degrees*pi/180.0
+
+
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 
 class TrivialProportionalController(object):
@@ -132,7 +135,7 @@ class CartPendulumSystem(object):
 
     def step(self):
         if self.print_state:
-            print(self.system_state, self.scaled_state)
+            logging.info('{}'.format(self.system_state))
 
         if self.control_enabled:
             force = self.controller.get_force(self)
