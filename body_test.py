@@ -20,7 +20,7 @@
 
 from math import pi
 
-from Box2D import (b2EdgeShape, b2FixtureDef, b2PolygonShape, b2World)
+from Box2D import (b2EdgeShape, b2FixtureDef, b2PolygonShape)
 
 from framework import (Framework, main)
 
@@ -35,13 +35,13 @@ class BodySystem(object):
         )
 
         # The attachment
-        self.attachment = self.world.CreateDynamicBody(
+        self.pole = self.world.CreateDynamicBody(
             position=(0, 7),
             fixtures=b2FixtureDef(
                 shape=b2PolygonShape(box=(0.5, 2)), density=1.0),
         )
 
-        self.attachment.angle = 10.0*pi/180.0
+        self.pole.angle = 10.0 * pi / 180.0
 
         # The platform
         fixture = b2FixtureDef(
@@ -50,22 +50,22 @@ class BodySystem(object):
             friction=0.0,
         )
 
-        self.platform = self.world.CreateDynamicBody(
+        self.cart = self.world.CreateDynamicBody(
             position=(0, 5),
             fixtures=fixture,
         )
 
         # The joints joining the attachment/platform and ground/platform
         self.world.CreateRevoluteJoint(
-            bodyA=self.platform,
-            bodyB=self.attachment,
+            bodyA=self.cart,
+            bodyB=self.pole,
             localAnchorA=(0, 0),
             localAnchorB=(0, -2),
         )
 
         self.world.CreatePrismaticJoint(
             bodyA=ground,
-            bodyB=self.platform,
+            bodyB=self.cart,
             anchor=(0, 5),
             axis=(1, 0),
             maxMotorForce=1000,
@@ -76,20 +76,17 @@ class BodySystem(object):
         )
 
     def step(self):
-        angle = self.attachment.angle*180/pi*15
+        angle = self.pole.angle * 180 / pi * 15
 
-        # print(self.attachment.angularVelocity)
-        self.platform.ApplyLinearImpulse((-angle, 0), self.platform.worldCenter, True)
+        self.cart.ApplyLinearImpulse((-angle, 0), self.cart.worldCenter, True)
 
     def discrete_loop(self):
         timeStep = 1.0 / 60
-        vel_iters, pos_iters = 6, 2
+        vel_iters, pos_iters = 8, 3
 
-        # This is our little game loop.
         for i in range(6000):
-            # Instruct the world to perform a single step of simulation. It is
-            # generally best to keep the time step and iterations fixed.
             self.world.Step(timeStep, vel_iters, pos_iters)
+            self.step()
 
 
 class BodyTypes(Framework):
@@ -101,6 +98,10 @@ class BodyTypes(Framework):
         super(BodyTypes, self).__init__()
 
         self.system = BodySystem(self.world)
+        self.setZoom(25.0)
+
+    def get_starting_resolution(self):
+        return 1280, 1024
 
     def Step(self, settings):
         super(BodyTypes, self).Step(settings)
@@ -108,12 +109,4 @@ class BodyTypes(Framework):
         self.system.step()
 
 if __name__ == "__main__":
-    #main(BodyTypes)
-    import datetime
-
-    system = BodySystem(b2World())
-    start = datetime.datetime.now()
-    system.discrete_loop()
-    elapsed = datetime.datetime.now() - start
-
-    print(elapsed.total_seconds() * 1000)
+    main(BodyTypes)
