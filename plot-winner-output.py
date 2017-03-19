@@ -1,15 +1,8 @@
-"""
-Test the performance of the best genome produced by evolve-feedforward.py.
-"""
-
-from __future__ import print_function
-
 import os
 import pickle
 import math
-
 from cart_pole import CartPole, discrete_actuator_force
-from movie import make_movie
+import matplotlib.pyplot as plt
 
 import neat
 from neat import nn
@@ -18,11 +11,6 @@ from neat import nn
 with open('winner-feedforward', 'rb') as f:
     c = pickle.load(f)
 
-print('Loaded genome:')
-print(c)
-
-# Load the config file, which is assumed to live in
-# the same directory as this script.
 local_dir = os.path.dirname(__file__)
 config_path = os.path.join(local_dir, 'config-feedforward')
 config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
@@ -42,7 +30,11 @@ print()
 
 # Run the given simulation for up to 120 seconds.
 balance_time = 0.0
-while sim.t < 120.0:
+times = []
+positions = []
+rotations = []
+
+while sim.t < 30.0:
     inputs = sim.get_scaled_state()
     action = net.activate(inputs)
 
@@ -58,6 +50,9 @@ while sim.t < 120.0:
 
     balance_time = sim.t
 
+    times.append(sim.t)
+    positions.append(sim.x)
+    rotations.append(sim.theta*180.0/math.pi)
 
 print('Pole balanced for {0:.1f} of 120.0 seconds'.format(balance_time))
 
@@ -68,5 +63,16 @@ print("    x_dot = {0:.4f}".format(sim.dx))
 print("    theta = {0:.4f}".format(sim.theta))
 print("theta_dot = {0:.4f}".format(sim.dtheta))
 print()
-print("Making movie...")
-make_movie(net, discrete_actuator_force, 120.0, "feedforward-movie.mp4")
+
+plt.plot(times, positions, label="Position")
+plt.plot(times, rotations, label="Rotation")
+plt.title("Position and rotation over time")
+plt.xlabel("Time")
+plt.ylabel("State")
+plt.grid()
+plt.legend(loc="best")
+plt.show()
+
+plt.close()
+
+
