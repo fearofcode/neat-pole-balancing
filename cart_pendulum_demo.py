@@ -40,6 +40,9 @@ class TrivialProportionalController(object):
 
 
 class CartPendulumSystem(object):
+    POSITION_LIMIT = 10.0  # larger than the benchmarks used in papers due to the dimensions of the objects
+    ROTATION_LIMIT = pi / 5  # this is the same, though
+
     def __init__(self, world, initial_rotation, controller):
         self.world = world
         self.controller = controller
@@ -87,9 +90,49 @@ class CartPendulumSystem(object):
             enableMotor=True,
         )
 
+    @property
+    def x(self):
+        return self.cart.position.x
+
+    @property
+    def dx(self):
+        return self.cart.linearVelocity.x
+
+    @property
+    def theta(self):
+        return self.pole.angle
+
+    @property
+    def dtheta(self):
+        return self.pole.angularVelocity
+
+    @property
+    def system_state(self):
+        return [
+            self.x,
+            self.dx,
+            self.theta,
+            self.dtheta
+        ]
+
+    @property
+    def scaled_state(self):
+        """Get full state, scaled into (approximately) [0, 1]."""
+
+        return [
+            0.5 * (self.x + self.POSITION_LIMIT) / self.POSITION_LIMIT,
+            (self.dx + 0.75) / 1.5,
+            0.5 * (self.theta + self.ROTATION_LIMIT) / self.ROTATION_LIMIT,
+            (self.dtheta + 1.0) / 2.0
+        ]
+
+    def in_legal_state(self):
+        return -self.POSITION_LIMIT <= self.x <= self.POSITION_LIMIT and \
+               -self.ROTATION_LIMIT <= self.theta <= self.ROTATION_LIMIT
+
     def step(self):
         if self.print_state:
-            print(self.pole.angle)
+            print(self.system_state, self.scaled_state)
 
         if self.control_enabled:
             force = self.controller.get_force(self)
@@ -97,10 +140,16 @@ class CartPendulumSystem(object):
             self.cart.ApplyLinearImpulse((force, 0), self.cart.worldCenter, True)
 
     def discrete_loop(self):
-        timeStep = 1.0 / settings.hz
+        """Step the system for 60 seconds with control possibly applied."""
 
-        for i in range(6000):
-            self.world.Step(timeStep, settings.velocityIterations, settings.positionIterations)
+        time = 60.0
+        step = 1.0 / settings.hz
+        steps = int(time/step)
+
+        assert steps == 6000
+
+        for i in range(steps):
+            self.world.Step(step, settings.velocityIterations, settings.positionIterations)
             self.step()
 
 
@@ -128,5 +177,12 @@ class CartPendulumDemo(Framework):
 
         self.system.step()
 
+        if not self.system.in_legal_state():
+            settings.pause = True
+            self.Print('Simulation exceeded legal bounds, stopping')
+
 if __name__ == "__main__":
-    main(CartPendulumDemo, to_radians(15.0), TrivialProportionalController())
+    initial_rotation = to_radians(15.0)
+    controller = TrivialProportionalController()
+
+    main(CartPendulumDemo, initial_rotation, controller)
