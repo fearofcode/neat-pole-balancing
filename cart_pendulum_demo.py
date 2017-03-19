@@ -23,9 +23,10 @@ from math import pi
 from Box2D import (b2EdgeShape, b2FixtureDef, b2PolygonShape)
 
 from framework import (Framework, main)
+import settings
 
 
-class BodySystem(object):
+class CartPendulumSystem(object):
     def __init__(self, world):
         self.world = world
 
@@ -34,7 +35,6 @@ class BodySystem(object):
             shapes=b2EdgeShape(vertices=[(-20, 0), (20, 0)])
         )
 
-        # The attachment
         self.pole = self.world.CreateDynamicBody(
             position=(0, 7),
             fixtures=b2FixtureDef(
@@ -43,7 +43,6 @@ class BodySystem(object):
 
         self.pole.angle = 10.0 * pi / 180.0
 
-        # The platform
         fixture = b2FixtureDef(
             shape=b2PolygonShape(box=(4, 0.5)),
             density=1,
@@ -55,7 +54,6 @@ class BodySystem(object):
             fixtures=fixture,
         )
 
-        # The joints joining the attachment/platform and ground/platform
         self.world.CreateRevoluteJoint(
             bodyA=self.cart,
             bodyB=self.pole,
@@ -81,32 +79,30 @@ class BodySystem(object):
         self.cart.ApplyLinearImpulse((-angle, 0), self.cart.worldCenter, True)
 
     def discrete_loop(self):
-        timeStep = 1.0 / 60
-        vel_iters, pos_iters = 8, 3
+        timeStep = 1.0 / settings.hz
 
         for i in range(6000):
-            self.world.Step(timeStep, vel_iters, pos_iters)
+            self.world.Step(timeStep, settings.velocityIterations, settings.positionIterations)
             self.step()
 
 
-class BodyTypes(Framework):
-    name = "Body Types"
-    description = "foo"
-    speed = 3  # platform speed
+class CartPendulumDemo(Framework):
+    name = "Cart/pendulum system"
+    description = "TODO fill this in"
 
     def __init__(self):
-        super(BodyTypes, self).__init__()
+        super(CartPendulumDemo, self).__init__()
 
-        self.system = BodySystem(self.world)
+        self.system = CartPendulumSystem(self.world)
         self.setZoom(25.0)
 
     def get_starting_resolution(self):
         return 1280, 1024
 
     def Step(self, settings):
-        super(BodyTypes, self).Step(settings)
+        super(CartPendulumDemo, self).Step(settings)
 
         self.system.step()
 
 if __name__ == "__main__":
-    main(BodyTypes)
+    main(CartPendulumDemo)
