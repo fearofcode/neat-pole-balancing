@@ -1,3 +1,6 @@
 *.iml
 *.pyc
 .idea/
+neat-checkpoint-*
+*.mp4
+winner-feedforward

@@ -1,4 +1,4 @@
-# NEAT configuration for the bit-sequence memory experiment.
+# NEAT configuration for the single-pole balancing experiment
 
 # The `NEAT` section specifies parameters particular to the NEAT algorithm
 # or the experiment itself.  This is the only required section.
@@ -6,7 +6,8 @@
 fitness_criterion     = max
 # 0.1*1.0 + 100*0.75/0.00000001
 fitness_threshold     = 7500000000.1
-pop_size              = 250
+#fitness_threshold = 60.0
+pop_size              = 1000
 reset_on_extinction   = 0
 
 [DefaultGenome]
