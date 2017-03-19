@@ -22,13 +22,14 @@ from math import pi
 
 from Box2D import (b2EdgeShape, b2FixtureDef, b2PolygonShape)
 
-from framework import (Framework, main)
+from framework import (Framework, Keys, main)
 import settings
 
 
 class CartPendulumSystem(object):
     def __init__(self, world):
         self.world = world
+        self.control_enabled = True
 
         # The ground
         ground = self.world.CreateBody(
@@ -74,9 +75,11 @@ class CartPendulumSystem(object):
         )
 
     def step(self):
-        angle = self.pole.angle * 180 / pi * 15
+        print(self.pole.angle)
+        if self.control_enabled:
+            angle = self.pole.angle * 180 / pi * 15
 
-        self.cart.ApplyLinearImpulse((-angle, 0), self.cart.worldCenter, True)
+            self.cart.ApplyLinearImpulse((-angle, 0), self.cart.worldCenter, True)
 
     def discrete_loop(self):
         timeStep = 1.0 / settings.hz
@@ -88,7 +91,7 @@ class CartPendulumSystem(object):
 
 class CartPendulumDemo(Framework):
     name = "Cart/pendulum system"
-    description = "TODO fill this in"
+    description = "Press 'c' to toggle control"
 
     def __init__(self):
         super(CartPendulumDemo, self).__init__()
@@ -99,6 +102,9 @@ class CartPendulumDemo(Framework):
     def get_starting_resolution(self):
         return 1280, 1024
 
+    def Keyboard(self, key):
+        if key == Keys.K_c:
+            self.system.control_enabled = not self.system.control_enabled
     def Step(self, settings):
         super(CartPendulumDemo, self).Step(settings)
 
