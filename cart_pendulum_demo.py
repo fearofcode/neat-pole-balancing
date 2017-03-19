@@ -26,10 +26,26 @@ from framework import (Framework, Keys, main)
 import settings
 
 
+def to_radians(degrees):
+    return degrees*pi/180.0
+
+
+class TrivialProportionalController(object):
+    """A simple function that just applies a force proportional to the angle offset of the pole.
+
+    It keeps the pole from falling over for the most part, but the cart will steadily drift off into space."""
+
+    def get_force(self, system):
+        return -system.pole.angle * 180 / pi * 15
+
+
 class CartPendulumSystem(object):
-    def __init__(self, world):
+    def __init__(self, world, initial_rotation, controller):
         self.world = world
+        self.controller = controller
+
         self.control_enabled = True
+        self.print_state = True
 
         # The ground
         ground = self.world.CreateBody(
@@ -42,7 +58,7 @@ class CartPendulumSystem(object):
                 shape=b2PolygonShape(box=(0.5, 2)), density=1.0),
         )
 
-        self.pole.angle = 10.0 * pi / 180.0
+        self.pole.angle = initial_rotation
 
         fixture = b2FixtureDef(
             shape=b2PolygonShape(box=(4, 0.5)),
@@ -69,17 +85,16 @@ class CartPendulumSystem(object):
             axis=(1, 0),
             maxMotorForce=1000,
             enableMotor=True,
-            lowerTranslation=-20,
-            upperTranslation=20,
-            enableLimit=True
         )
 
     def step(self):
-        print(self.pole.angle)
-        if self.control_enabled:
-            angle = self.pole.angle * 180 / pi * 15
+        if self.print_state:
+            print(self.pole.angle)
 
-            self.cart.ApplyLinearImpulse((-angle, 0), self.cart.worldCenter, True)
+        if self.control_enabled:
+            force = self.controller.get_force(self)
+
+            self.cart.ApplyLinearImpulse((force, 0), self.cart.worldCenter, True)
 
     def discrete_loop(self):
         timeStep = 1.0 / settings.hz
@@ -91,12 +106,12 @@ class CartPendulumSystem(object):
 
 class CartPendulumDemo(Framework):
     name = "Cart/pendulum system"
-    description = "Press 'c' to toggle control"
+    description = "Press 'c' to toggle control. Press 'p' to toggle printing system state to stdout"
 
-    def __init__(self):
+    def __init__(self, initial_rotation, controller):
         super(CartPendulumDemo, self).__init__()
 
-        self.system = CartPendulumSystem(self.world)
+        self.system = CartPendulumSystem(self.world, initial_rotation, controller)
         self.setZoom(25.0)
 
     def get_starting_resolution(self):
@@ -105,10 +120,13 @@ class CartPendulumDemo(Framework):
     def Keyboard(self, key):
         if key == Keys.K_c:
             self.system.control_enabled = not self.system.control_enabled
+        elif key == Keys.K_p:
+            self.system.print_state = not self.system.print_state
+
     def Step(self, settings):
         super(CartPendulumDemo, self).Step(settings)
 
         self.system.step()
 
 if __name__ == "__main__":
-    main(CartPendulumDemo)
+    main(CartPendulumDemo, to_radians(15.0), TrivialProportionalController())
