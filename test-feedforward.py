@@ -30,7 +30,7 @@ config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                      config_path)
 
 net = neat.nn.FeedForwardNetwork.create(c, config)
-sim = CartPole(x=0, dx=0, dtheta=0, theta=30.0*math.pi/180.0)
+sim = CartPole(x=2.0, dx=0, dtheta=0, theta=-30.0*math.pi/180.0)
 
 print()
 print("Initial conditions:")
