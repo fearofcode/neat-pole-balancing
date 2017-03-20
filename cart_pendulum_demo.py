@@ -52,18 +52,23 @@ class TrivialProportionalController(object):
 
 
 class CartPendulumSystem(object):
-    POSITION_LIMIT = 10.0  # larger than the benchmarks used in papers due to the dimensions of the objects
+    POSITION_LIMIT = 4  # larger than the benchmarks used in papers due to the dimensions of the objects
     ROTATION_LIMIT = pi / 5  # this is the same, though
 
-    def __init__(self, world, controller, initial_rotation=None):
+    def __init__(self, world, controller, initial_position=None, initial_rotation=None):
         self.world = world
         self.controller = controller
 
         self.control_enabled = True
         self.print_state = True
 
+        if initial_position is None:
+            initial_position = random.uniform(-0.3 * self.POSITION_LIMIT, 0.3 * self.POSITION_LIMIT)
+        else:
+            initial_position = initial_position
+
         if initial_rotation is None:
-            initial_rotation = random.uniform(-self.ROTATION_LIMIT, self.ROTATION_LIMIT)
+            initial_rotation = random.uniform(0.5*-self.ROTATION_LIMIT, 0.5*self.ROTATION_LIMIT)
 
         # The ground
         ground = self.world.CreateBody(
@@ -71,12 +76,10 @@ class CartPendulumSystem(object):
         )
 
         self.pole = self.world.CreateDynamicBody(
-            position=(0, 7),
+            position=(initial_position, 7),
             fixtures=b2FixtureDef(
                 shape=b2PolygonShape(box=(0.5, 2)), density=1.0),
         )
-
-        self.pole.angle = initial_rotation
 
         fixture = b2FixtureDef(
             shape=b2PolygonShape(box=(0.5, 0.5)),
@@ -85,15 +88,23 @@ class CartPendulumSystem(object):
         )
 
         self.cart = self.world.CreateDynamicBody(
-            position=(0, 5),
+            position=(initial_position, 5),
             fixtures=fixture,
         )
 
-        self.world.CreateRevoluteJoint(
+        if initial_rotation < 0:
+            motorSpeed = -1
+        else:
+            motorSpeed = 1
+
+        self.pole_joint = self.world.CreateRevoluteJoint(
             bodyA=self.cart,
             bodyB=self.pole,
             localAnchorA=(0, 0),
             localAnchorB=(0, -2),
+            enableMotor=True,
+            maxMotorTorque=100,
+            motorSpeed=motorSpeed
         )
 
         self.cart_joint = self.world.CreatePrismaticJoint(
@@ -104,6 +115,9 @@ class CartPendulumSystem(object):
             maxMotorForce=1000,
             enableMotor=True,
         )
+
+        self.first_time = True
+        self.initial_rotation = initial_rotation
 
     @property
     def x(self):
@@ -147,6 +161,23 @@ class CartPendulumSystem(object):
 
     def step(self, step_world=False):
         step = 1.0 / settings.fwSettings.hz
+        if self.first_time:
+            self.first_time = False
+
+            # shitty hack to use motor on revolute joint to actually rotate the pole
+            max_steps = settings.fwSettings.hz
+            steps = 0
+            while abs(self.pole.angle - self.initial_rotation) > to_radians(0.5) and steps <= max_steps:
+                steps += 1
+                self.world.Step(step, settings.fwSettings.velocityIterations, settings.fwSettings.positionIterations)
+
+            # now turn it off so gravity will take over
+
+            self.pole_joint.enableMotor = False
+            self.pole_joint.motorSpeed = 0
+            self.pole_joint.maxMotorTorque = 0
+            self.pole_joint.angularVelocity = 0
+
         if self.print_state:
             logging.info('{}'.format(self.system_state))
 
@@ -176,10 +207,10 @@ class CartPendulumDemo(Framework):
     name = "Cart/pendulum system"
     description = "Press 'c' to toggle control. Press 'p' to toggle printing system state to stdout"
 
-    def __init__(self, initial_rotation, controller):
+    def __init__(self, controller, initial_position, initial_rotation):
         super(CartPendulumDemo, self).__init__()
 
-        self.system = CartPendulumSystem(self.world, initial_rotation, controller)
+        self.system = CartPendulumSystem(self.world, controller, initial_position, initial_rotation)
         self.setZoom(25.0)
 
     def get_starting_resolution(self):
@@ -197,11 +228,13 @@ class CartPendulumDemo(Framework):
         self.system.step()
 
         if not self.system.in_legal_state():
-            settings.pause = True
-            self.Print('Simulation exceeded legal bounds, stopping')
+            pass
+            # settings.pause = True
+            # self.Print('Simulation exceeded legal bounds, stopping')
 
 if __name__ == "__main__":
-    initial_rotation = to_radians(15.0)
+    initial_position = 2.3
+    initial_rotation = 0.0
 
     load_winner_net = True
 
@@ -213,15 +246,15 @@ if __name__ == "__main__":
                              neat.DefaultSpeciesSet, neat.DefaultStagnation,
                              config_path)
 
-        with open('winner-feedforward.save', 'rb') as f:
+        with open('winner-feedforward', 'rb') as f:
             c = pickle.load(f)
         node_names = {-1: 'x', -2: 'dx', -3: 'theta', -4: 'dtheta', 0: 'control'}
-        visualize.draw_net(config, c, view=True, node_names=node_names,
-                           filename="winner-feedforward-enabled-pruned.gv", show_disabled=False, prune_unused=True)
+        # visualize.draw_net(config, c, view=True, node_names=node_names,
+        #                   filename="winner-feedforward-enabled-pruned.gv", show_disabled=False, prune_unused=True)
         net = neat.nn.FeedForwardNetwork.create(c, config)
         from evolve_feedforward_box2d import NeuralNetworkController
         controller = NeuralNetworkController(net)
     else:
         controller = TrivialProportionalController()
 
-    main(CartPendulumDemo, controller, initial_rotation)
+    main(CartPendulumDemo, controller, initial_position, initial_rotation)

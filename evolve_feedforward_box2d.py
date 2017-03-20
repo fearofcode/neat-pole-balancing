@@ -41,7 +41,7 @@ def eval_genome(genome, config):
     eps = 0.00000001
 
     for runs in range(runs_per_net):
-        system = cart_pendulum_demo.CartPendulumSystem(b2World(), controller)
+        system = cart_pendulum_demo.CartPendulumSystem(b2World(), controller, initial_rotation=0)
         system.print_state = False
 
         steps = 0
@@ -75,7 +75,7 @@ def eval_genomes(genomes, config):
 
 
 def run():
-    run_parallel = True
+    run_parallel = False
 
     # Load the config file, which is assumed to live in
     # the same directory as this script.
