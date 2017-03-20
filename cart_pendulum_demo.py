@@ -232,29 +232,37 @@ class CartPendulumDemo(Framework):
             # settings.pause = True
             # self.Print('Simulation exceeded legal bounds, stopping')
 
+
+def load_winner_net_controller(net_name='winner-feedforward.save'):
+    global config, c
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(local_dir, 'config-feedforward')
+    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                         config_path)
+    with open(net_name, 'rb') as f:
+        c = pickle.load(f)
+
+    net = neat.nn.FeedForwardNetwork.create(c, config)
+    from evolve_feedforward_box2d import NeuralNetworkController
+    return NeuralNetworkController(net)
+
+
 if __name__ == "__main__":
     initial_position = 2.3
     initial_rotation = 0.0
 
-    load_winner_net = True
+    run_off_winner_neat = True
 
-    if load_winner_net:
+    if run_off_winner_neat:
 
-        local_dir = os.path.dirname(__file__)
-        config_path = os.path.join(local_dir, 'config-feedforward')
-        config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                             neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                             config_path)
+        controller = load_winner_net_controller()
 
-        with open('winner-feedforward.save', 'rb') as f:
-            c = pickle.load(f)
-            print(c)
-        node_names = {-1: 'x', -2: 'dx', -3: 'theta', -4: 'dtheta', 0: 'control'}
+        # print(c)
+        # node_names = {-1: 'x', -2: 'dx', -3: 'theta', -4: 'dtheta', 0: 'control'}
         #visualize.draw_net(config, c, view=True, node_names=node_names,
         #                   filename="winner-feedforward-enabled-pruned.gv", show_disabled=False, prune_unused=True)
-        net = neat.nn.FeedForwardNetwork.create(c, config)
-        from evolve_feedforward_box2d import NeuralNetworkController
-        controller = NeuralNetworkController(net)
+
     else:
         controller = TrivialProportionalController()
 
