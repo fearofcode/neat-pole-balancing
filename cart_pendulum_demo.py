@@ -197,12 +197,11 @@ class CartPendulumDemo(Framework):
         self.system.step()
 
         if not self.system.in_legal_state():
-            pass
-            #settings.pause = True
-            #self.Print('Simulation exceeded legal bounds, stopping')
+            settings.pause = True
+            self.Print('Simulation exceeded legal bounds, stopping')
 
 if __name__ == "__main__":
-    initial_rotation = to_radians(30.0)
+    initial_rotation = to_radians(15.0)
 
     load_winner_net = True
 

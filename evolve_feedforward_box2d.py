@@ -27,7 +27,7 @@ class NeuralNetworkController(object):
         inputs = system.scaled_state
 
         action = self.net.activate(inputs)
-        return cart_pole.discrete_actuator_force(action)
+        return cart_pole.continuous_actuator_force(action)
 
 
 # Use the NN network phenotype and the discrete actuator force function.
@@ -54,7 +54,7 @@ def eval_genome(genome, config):
             if not system.in_legal_state():
                 break
 
-            f2_fitnesses.append(1.0/(abs(system.x) + abs(system.dx) + abs(system.theta) + abs(system.dtheta) + eps))
+            f2_fitnesses.append(1.0/(abs(system.x) + abs(system.theta) + abs(system.dx) + abs(system.dtheta) + eps))
             steps += 1
 
         # two tier fitness scheme to make sure we at least get to having long-term balancers
@@ -90,7 +90,7 @@ def run():
     pop.add_reporter(stats)
     pop.add_reporter(neat.StdOutReporter(True))
 
-    max_generations = 100
+    max_generations = 300
 
     if run_parallel:
         pe = neat.ParallelEvaluator(8, eval_genome)
@@ -104,7 +104,7 @@ def run():
 
     print(winner)
 
-    visualize.plot_stats(stats, ylog=True, view=True, filename="feedforward-fitness.svg")
+    visualize.plot_stats(stats, ylog=True, view=False, filename="feedforward-fitness.svg")
 
 if __name__ == '__main__':
     run()

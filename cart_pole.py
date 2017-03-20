@@ -88,7 +88,7 @@ class CartPole(object):
 
 
 def continuous_actuator_force(action):
-    output_max = 5.0
+    output_max = 10.0
 
     return -output_max + 2.0*output_max*action[0]
 
