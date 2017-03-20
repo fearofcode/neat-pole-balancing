@@ -88,7 +88,9 @@ class CartPole(object):
 
 
 def continuous_actuator_force(action):
-    return -10.0 + 2.0 * action[0]
+    output_max = 5.0
+
+    return -output_max + 2.0*output_max*action[0]
 
 
 def noisy_continuous_actuator_force(action):
@@ -97,7 +99,7 @@ def noisy_continuous_actuator_force(action):
 
 
 def discrete_actuator_force(action):
-    return 10.0 if action[0] > 0.5 else -10.0
+    return 25.0 if action[0] > 0.5 else -10.0
 
 
 def noisy_discrete_actuator_force(action):

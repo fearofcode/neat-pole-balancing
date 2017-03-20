@@ -20,7 +20,12 @@
 
 from math import pi
 import logging
+import os
+import pickle
+import random
 
+import neat
+import visualize
 from Box2D import (b2EdgeShape, b2FixtureDef, b2PolygonShape)
 from framework import (Framework, Keys, main)
 import settings
@@ -28,6 +33,10 @@ import settings
 
 def to_radians(degrees):
     return degrees*pi/180.0
+
+
+def to_degrees(radians):
+    return radians*180.0/pi
 
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
@@ -39,19 +48,22 @@ class TrivialProportionalController(object):
     It keeps the pole from falling over for the most part, but the cart will steadily drift off into space."""
 
     def get_force(self, system):
-        return -system.pole.angle * 180 / pi * 15
+        return -system.pole.angle * 180 / pi * 5
 
 
 class CartPendulumSystem(object):
     POSITION_LIMIT = 10.0  # larger than the benchmarks used in papers due to the dimensions of the objects
     ROTATION_LIMIT = pi / 5  # this is the same, though
 
-    def __init__(self, world, initial_rotation, controller):
+    def __init__(self, world, controller, initial_rotation=None):
         self.world = world
         self.controller = controller
 
         self.control_enabled = True
         self.print_state = True
+
+        if initial_rotation is None:
+            initial_rotation = random.uniform(-self.ROTATION_LIMIT, self.ROTATION_LIMIT)
 
         # The ground
         ground = self.world.CreateBody(
@@ -67,8 +79,8 @@ class CartPendulumSystem(object):
         self.pole.angle = initial_rotation
 
         fixture = b2FixtureDef(
-            shape=b2PolygonShape(box=(4, 0.5)),
-            density=1,
+            shape=b2PolygonShape(box=(0.5, 0.5)),
+            density=2,
             friction=0.0,
         )
 
@@ -84,7 +96,7 @@ class CartPendulumSystem(object):
             localAnchorB=(0, -2),
         )
 
-        self.world.CreatePrismaticJoint(
+        self.cart_joint = self.world.CreatePrismaticJoint(
             bodyA=ground,
             bodyB=self.cart,
             anchor=(0, 5),
@@ -114,7 +126,7 @@ class CartPendulumSystem(object):
         return [
             self.x,
             self.dx,
-            self.theta,
+            to_degrees(self.theta),
             self.dtheta
         ]
 
@@ -133,14 +145,18 @@ class CartPendulumSystem(object):
         return -self.POSITION_LIMIT <= self.x <= self.POSITION_LIMIT and \
                -self.ROTATION_LIMIT <= self.theta <= self.ROTATION_LIMIT
 
-    def step(self):
+    def step(self, step_world=False):
+        step = 1.0 / settings.fwSettings.hz
         if self.print_state:
             logging.info('{}'.format(self.system_state))
+
+        if step_world:
+            self.world.Step(step, settings.fwSettings.velocityIterations, settings.fwSettings.positionIterations)
 
         if self.control_enabled:
             force = self.controller.get_force(self)
 
-            self.cart.ApplyLinearImpulse((force, 0), self.cart.worldCenter, True)
+            self.cart_joint.motorSpeed = force
 
     def discrete_loop(self):
         """Step the system for 60 seconds with control possibly applied."""
@@ -181,11 +197,32 @@ class CartPendulumDemo(Framework):
         self.system.step()
 
         if not self.system.in_legal_state():
-            settings.pause = True
-            self.Print('Simulation exceeded legal bounds, stopping')
+            pass
+            #settings.pause = True
+            #self.Print('Simulation exceeded legal bounds, stopping')
 
 if __name__ == "__main__":
-    initial_rotation = to_radians(15.0)
-    controller = TrivialProportionalController()
+    initial_rotation = to_radians(30.0)
 
-    main(CartPendulumDemo, initial_rotation, controller)
+    load_winner_net = True
+
+    if load_winner_net:
+
+        local_dir = os.path.dirname(__file__)
+        config_path = os.path.join(local_dir, 'config-feedforward')
+        config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                             neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                             config_path)
+
+        with open('winner-feedforward', 'rb') as f:
+            c = pickle.load(f)
+        node_names = {-1: 'x', -2: 'dx', -3: 'theta', -4: 'dtheta', 0: 'control'}
+        visualize.draw_net(config, c, view=True, node_names=node_names,
+                           filename="winner-feedforward-enabled-pruned.gv", show_disabled=False, prune_unused=True)
+        net = neat.nn.FeedForwardNetwork.create(c, config)
+        from evolve_feedforward_box2d import NeuralNetworkController
+        controller = NeuralNetworkController(net)
+    else:
+        controller = TrivialProportionalController()
+
+    main(CartPendulumDemo, controller, initial_rotation)
