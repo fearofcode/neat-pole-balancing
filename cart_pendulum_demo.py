@@ -60,7 +60,7 @@ class CartPendulumSystem(object):
         self.controller = controller
 
         self.control_enabled = True
-        self.print_state = True
+        self.print_state = False
 
         if initial_position is None:
             initial_position = random.uniform(-0.3 * self.POSITION_LIMIT, 0.3 * self.POSITION_LIMIT)
@@ -246,10 +246,11 @@ if __name__ == "__main__":
                              neat.DefaultSpeciesSet, neat.DefaultStagnation,
                              config_path)
 
-        with open('winner-feedforward', 'rb') as f:
+        with open('winner-feedforward.save', 'rb') as f:
             c = pickle.load(f)
+            print(c)
         node_names = {-1: 'x', -2: 'dx', -3: 'theta', -4: 'dtheta', 0: 'control'}
-        # visualize.draw_net(config, c, view=True, node_names=node_names,
+        #visualize.draw_net(config, c, view=True, node_names=node_names,
         #                   filename="winner-feedforward-enabled-pruned.gv", show_disabled=False, prune_unused=True)
         net = neat.nn.FeedForwardNetwork.create(c, config)
         from evolve_feedforward_box2d import NeuralNetworkController
