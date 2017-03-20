@@ -213,7 +213,7 @@ if __name__ == "__main__":
                              neat.DefaultSpeciesSet, neat.DefaultStagnation,
                              config_path)
 
-        with open('winner-feedforward', 'rb') as f:
+        with open('winner-feedforward.save', 'rb') as f:
             c = pickle.load(f)
         node_names = {-1: 'x', -2: 'dx', -3: 'theta', -4: 'dtheta', 0: 'control'}
         visualize.draw_net(config, c, view=True, node_names=node_names,
