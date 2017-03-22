@@ -7,17 +7,17 @@ import numpy as np
 import neat
 import pickle
 
-episodes = 10
+episodes = 5
 
-env_name = 'MountainCar-v0'
-config_name = 'config-feedforward-mountaincar'
+env_name = 'Pendulum-v0'
+config_name = 'config-feedforward-pendulum'
 
 # TODO factor out copy and pasted shit
 
 def eval_genome(genome, config):
     # TODO can we actually get away with only one env? it seems like they'd all step on each other
     env = gym.make(env_name)
-    scale = -env.observation_space.low
+    scale = -env.observation_space.high
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
     fitnesses = []
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     logger = logging.getLogger('gym.envs.registration')
     logger.setLevel(logging.ERROR)
 
-    train = False
+    train = True
 
     if train:
         run()
