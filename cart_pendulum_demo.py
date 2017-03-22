@@ -236,7 +236,7 @@ class CartPendulumDemo(Framework):
 def load_winner_net_controller(net_name='winner-feedforward.save'):
     global config, c
     local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, 'config-feedforward')
+    config_path = os.path.join(local_dir, 'config-feedforward-cartpole')
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
                          config_path)

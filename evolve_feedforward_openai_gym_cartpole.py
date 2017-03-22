@@ -8,7 +8,7 @@ import neat
 import visualize
 
 episodes = 5
-steps = 5000
+steps = 50000
 
 # env = gym.make('CartPole-v0')
 env = gym.make('CartPole-v1')
@@ -59,7 +59,7 @@ def run():
     # Load the config file, which is assumed to live in
     # the same directory as this script.
     local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, 'config-feedforward')
+    config_path = os.path.join(local_dir, 'config-feedforward-cartpole')
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
                          config_path)
@@ -69,10 +69,10 @@ def run():
     pop.add_reporter(stats)
     pop.add_reporter(neat.StdOutReporter(True))
 
-    # pe = neat.ParallelEvaluator(8, eval_genome)
-    # winner = pop.run(pe.evaluate, 200)
+    pe = neat.ParallelEvaluator(8, eval_genome)
+    winner = pop.run(pe.evaluate, 200)
 
-    winner = pop.run(eval_genomes, 300)
+    # winner = pop.run(eval_genomes, 300)
 
     print(winner)
 
