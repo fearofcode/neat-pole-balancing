@@ -1,23 +1,28 @@
 
-import gym
-
+import math
 import logging
 import os
-import numpy as np
-import neat
 import pickle
 
-episodes = 5
+import neat
+import numpy as np
+import gym
+
+episodes = 10
 
 env_name = 'Pendulum-v0'
 config_name = 'config-feedforward-pendulum'
 
 # TODO factor out copy and pasted shit
 
+
+output_max = 2.0
+
+
 def eval_genome(genome, config):
     # TODO can we actually get away with only one env? it seems like they'd all step on each other
     env = gym.make(env_name)
-    scale = -env.observation_space.high
+    scale = env.observation_space.high
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
     fitnesses = []
@@ -28,16 +33,22 @@ def eval_genome(genome, config):
         observation = env.reset()
 
         # run until gym says to stop
+        steps = 0
+
         while True:
             scaled_input = observation / scale
 
-            output = net.activate(scaled_input)
-            action = np.argmax(output)
-            observation, reward, done, info = env.step(action)
+            periodic_input = math.cos(steps*math.pi/180)
+            output = net.activate(np.append(scaled_input, [periodic_input]))
+
+            action = -output_max + 2.0*output_max*output[0]
+            observation, reward, done, info = env.step([action])
             fitness += reward
 
             if done:
                 break
+
+            steps += 1
 
         fitnesses.append(fitness)
 
@@ -65,9 +76,9 @@ def run():
     pop.add_reporter(neat.Checkpointer(5))
 
     pe = neat.ParallelEvaluator(8, eval_genome)
-    winner = pop.run(pe.evaluate, 200)
+    winner = pop.run(pe.evaluate, 1000)
 
-    # winner = pop.run(eval_genomes, 300)
+    winner = pop.run(eval_genomes, 300)
 
     # Save the winner.
     with open('winner-feedforward', 'wb') as f:
@@ -85,16 +96,18 @@ def visualize_winner(net):
     env = gym.make(env_name)
     scale = env.observation_space.high
     observation = env.reset()
+    steps = 0
     while True:
         scaled_input = observation / scale
         env.render()
-        output = net.activate(scaled_input)
-        action = np.argmax(output)
+        periodic_input = math.cos(steps*math.pi/180)
+        output = net.activate(np.append(scaled_input, [periodic_input]))
 
-        observation, reward, done, info = env.step(action)
+        action = -output_max + 2.0*output_max*output[0]
+        observation, reward, done, info = env.step([action])
         print(observation, reward, done, info)
         fitness += reward
-
+        steps += 1
         if done:
             break
     print("Fitness", fitness)
